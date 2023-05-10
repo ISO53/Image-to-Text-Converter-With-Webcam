@@ -2,8 +2,11 @@ package com.mycompany.textimagecamera;
 
 import com.github.sarxos.webcam.Webcam;
 import com.github.sarxos.webcam.WebcamResolution;
-import java.awt.Color;
+
+import java.awt.*;
+import java.awt.color.ColorSpace;
 import java.awt.image.BufferedImage;
+import java.awt.image.ColorConvertOp;
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -62,129 +65,51 @@ public class RunnableCamera implements Runnable {
     }
 
     public void printTextImage(BufferedImage image) {
-        String textImage = "";
-
-        for (int h = 0; h < image.getHeight(); h++) {
-            textImage += "\n";
-            for (int w = 0; w < image.getWidth(); w++) {
-                int RGB = image.getRGB(w, h);
-                int blue = RGB & 0xff;
-                //int green = (RGB & 0xff00) >> 8;
-                //int red = (RGB & 0xff0000) >> 16;
-                //All values will be same since this is a monochrome image
-
-                // ░▒▓█ 
-                if (blue < 51) {
-                    textImage += "█";
-                } else if (blue < 102) {
-                    textImage += "▓";
-                } else if (blue < 153) {
-                    textImage += "▒";
-                } else if (blue < 204) {
-                    textImage += "░";
-                } else if (blue < 256) {
-                    textImage += " ";
-                } else {
-                    //wtf
-                    textImage += " ";
-                }
-            }
-        }
-        txtPane.setText(textImage);
-    }
-
-    /**
-     * Runs slightly faster than printTextImage
-     * @param image
-     */
-    public void printTextImageV2(BufferedImage image) {
+        StringBuilder textImage = new StringBuilder();
+        char[] line = new char[image.getWidth()];
 
         for (int h = 0; h < image.getHeight(); h++) {
             for (int w = 0; w < image.getWidth(); w++) {
                 int RGB = image.getRGB(w, h);
                 int blue = RGB & 0xff;
-                //int green = (RGB & 0xff00) >> 8;
-                //int red = (RGB & 0xff0000) >> 16;
-                //All values will be same since this is a monochrome image
 
-                // ░▒▓█ 
-                if (blue < 51) {
-                    append("█");
-                } else if (blue < 102) {
-                    append("▓");
-                } else if (blue < 153) {
-                    append("▒");
-                } else if (blue < 204) {
-                    append("░");
+                if (blue < 31) {
+                    line[w] = '█';
+                } else if (blue < 92) {
+                    line[w] = '▓';
+                } else if (blue < 143) {
+                    line[w] = '▒';
+                } else if (blue < 194) {
+                    line[w] = '░';
                 } else if (blue < 256) {
-                    append(" ");
+                    line[w] = ' ';
                 } else {
                     //wtf
-                    append(" ");
+                    line[w] = ' ';
                 }
             }
-            append("\n");
+            textImage.append('\n').append(line);
         }
-        clean();
-    }
 
-    public void append(String str) {
-        try {
-            doc.insertString(doc.getLength(), str, null);
-        } catch (BadLocationException ex) {
-            Logger.getLogger(RunnableCamera.class.getName()).log(Level.SEVERE, null, ex);
-        }
-    }
-
-    public void clean() {
-        try {
-            doc.remove(0, doc.getLength());
-        } catch (BadLocationException ex) {
-            Logger.getLogger(RunnableCamera.class.getName()).log(Level.SEVERE, null, ex);
-        }
+        txtPane.setText(textImage.toString());
     }
 
     public BufferedImage scale(BufferedImage image, int width, int height) {
-        BufferedImage img = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
-        int x, y;
-        int ww = image.getWidth();
-        int hh = image.getHeight();
-        int[] ys = new int[height];
-        for (y = 0; y < height; y++) {
-            ys[y] = y * hh / height;
-        }
-        for (x = 0; x < width; x++) {
-            int newX = x * ww / width;
-            for (y = 0; y < height; y++) {
-                int col = image.getRGB(newX, ys[y]);
-                img.setRGB(x, y, col);
-            }
-        }
-        return img;
+        BufferedImage scaledImage = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
+        Graphics2D g2d = scaledImage.createGraphics();
+        g2d.drawImage(image, 0, 0, width, height, null);
+        g2d.dispose();
+        return scaledImage;
     }
 
     public BufferedImage convertMonochrome(BufferedImage image) {
         if (image == null) {
             return null;
         }
+        ColorSpace cs = ColorSpace.getInstance(ColorSpace.CS_GRAY);
+        ColorConvertOp op = new ColorConvertOp(cs, null);
 
-        BufferedImage monochromeImage = new BufferedImage(image.getWidth(), image.getHeight(), BufferedImage.TYPE_INT_RGB);
-
-        for (int i = 0; i < image.getHeight(); i++) {
-            for (int j = 0; j < image.getWidth(); j++) {
-                Color c = new Color(image.getRGB(j, i));
-                int red = (int) (c.getRed());
-                int green = (int) (c.getGreen());
-                int blue = (int) (c.getBlue());
-
-                int mix = ((red + green + blue) / 3);
-                Color newColor = new Color(mix, mix, mix);
-
-                monochromeImage.setRGB(j, i, newColor.getRGB());
-            }
-        }
-
-        return monochromeImage;
+        return op.filter(image, null);
     }
 
     public void screenShotTxt() {
@@ -213,7 +138,7 @@ public class RunnableCamera implements Runnable {
                 //int red = (RGB & 0xff0000) >> 16;
                 //All values will be same since this is a monochrome image
 
-                // ░▒▓█ 
+                // ░▒▓█
                 if (blue < 51) {
                     textImage += "█";
                 } else if (blue < 102) {
@@ -241,4 +166,5 @@ public class RunnableCamera implements Runnable {
             Logger.getLogger(RunnableCamera.class.getName()).log(Level.SEVERE, null, ex);
         }
     }
+
 }
